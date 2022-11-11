@@ -13,7 +13,6 @@ or
 
 `$ nsfckup example.com`
 
-
 ## Options
 
 ```
@@ -27,7 +26,7 @@ or
 
 ## Install
 
-You need to have [Go installed](https://golang.org/doc/install) and configured (i.e. with $GOPATH/bin in your $PATH):
+You need to have the latest version (1.19+) of [Go installed](https://golang.org/doc/install) and configured (i.e. with $GOPATH/bin in your $PATH):
 
 `go get -u github.com/cybercdh/nsfckup`
 
