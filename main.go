@@ -83,7 +83,9 @@ func main() {
 			for nx := range nxs {
 
 				if c.isSeen(nx) {
-					fmt.Printf("Seen %s\n", nx)
+					if verbose {
+						fmt.Printf("Seen %s\n", nx)
+					}
 					continue
 				}
 
