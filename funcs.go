@@ -50,12 +50,13 @@ func traceIt(domainToTrace string) {
 				}
 
 				if strict {
-					if strings.Contains(cname_domain, domainToTrace) {
-						traceIt(cname_domain)
+					if !strings.Contains(cname_domain, domainToTrace) {
+						return
 					}
-				} else {
-					traceIt(cname_domain)
 				}
+
+				traceIt(cname_domain)
+
 				return
 			}
 		}
