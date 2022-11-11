@@ -64,6 +64,7 @@ func traceIt(domainToTrace string) {
 		// parse each NS, extract the root domain and send to nxs channel to check
 		for _, ns := range rsp.Msg.Ns {
 			svr := strings.Split(ns.String(), "\t")[4]
+			svr = strings.TrimSuffix(svr, ".")
 			typ := strings.Split(ns.String(), "\t")[3]
 
 			if !strings.Contains(typ, "NS") {
