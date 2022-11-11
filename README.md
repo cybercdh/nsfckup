@@ -22,7 +22,7 @@ or
 
 -s  be strict with recursively checking CNAMES
 
--v  get more info on URL attempts
+-v  get more info on attempts
 ```
 
 ## Install
