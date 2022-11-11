@@ -7,6 +7,10 @@ Take a list of domains and inspect their NameServer domains which return an NXDO
 
 or 
 
+`$ assetfinder example.com | nsfckup -c 50 `
+
+or 
+
 `$ nsfckup example.com`
 
 
