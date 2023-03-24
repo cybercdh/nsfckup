@@ -59,10 +59,13 @@ func traceIt(job *Job) {
 
 	rsps, err := dig.Trace(job.domain)
 	if err != nil {
+		// there was an issue with the nameserver, probably timing out
 		if verbose {
 			log.Printf("Tracing %s using %s produced error: %s\n", job.domain, job.resolver, err)
 		}
-		return
+		// dont't return, as we still want to check the problematic nameserver
+		// in case it is nxdomain, although tbh likely it wont be.
+		// return
 	}
 
 	for _, rsp := range rsps {
