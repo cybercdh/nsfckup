@@ -139,11 +139,11 @@ func GetUserInput() (bool, error) {
 
 	// a list of dns resolvers to randomly choose from
 	resolvers := []string{
-		"1.1.1.1:53",
-		"1.0.0.1:53",
-		"8.8.8.8:53",
-		"8.8.4.4:53",
-		"9.9.9.9:53",
+		"1.1.1.1",
+		"1.0.0.1",
+		"8.8.8.8",
+		"8.8.4.4",
+		"9.9.9.9",
 	}
 
 	// seed to randomly select dns server
