@@ -59,7 +59,9 @@ func traceIt(job *Job) {
 
 	rsps, err := dig.Trace(job.domain)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Printf("Tracing %s using %s produced error: %s\n", job.domain, job.resolver, err)
+		}
 		return
 	}
 
