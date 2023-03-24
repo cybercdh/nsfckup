@@ -59,10 +59,11 @@ func main() {
 			for tgt := range nxs {
 
 				if c.isSeen(tgt.ns_root) {
-					// if verbose {
-					// 	fmt.Printf("Already seen NS %s from domain %s\n", tgt.ns, tgt.domain)
-					// }
 					continue
+				}
+
+				if verbose {
+					fmt.Printf("%s has NS %s\n", tgt.domain, tgt.ns_root)
 				}
 
 				c.addToSeen(tgt.ns_root)

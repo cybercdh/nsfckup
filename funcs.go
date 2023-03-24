@@ -99,10 +99,6 @@ func traceIt(job *Job) {
 			// update the target
 			tgt.ns_root = ns_domain
 
-			if verbose {
-				fmt.Printf("%s has NS %s\n", tgt.domain, tgt.ns_root)
-			}
-
 			// send tgt to nxs channel
 			nxs <- tgt
 		}
