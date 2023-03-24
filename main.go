@@ -9,7 +9,6 @@ this could indicate a possible NS takeover issue.
 package main
 
 import (
-	// "bufio"
 	"flag"
 	"fmt"
 	"github.com/gookit/color"
@@ -17,37 +16,14 @@ import (
 	"sync"
 )
 
-type Container struct {
-	mu   sync.Mutex
-	seen map[string]bool
-}
-
 // globals
 var verbose bool
 var strict bool
 var concurrency int
 
 // channels
-var domains = make(chan string)
-var nxs = make(chan string)
-var output = make(chan string)
-
-func (c *Container) addToSeen(domain string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.seen[domain] = true
-}
-
-func (c *Container) isSeen(domain string) bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// if we've seen the domain before, return true
-	if _, ok := c.seen[domain]; ok {
-		return true
-	}
-	return false
-}
+var jobs = make(chan Job, 100)
+var nxs = make(chan Target, 100)
 
 func main() {
 
@@ -67,8 +43,8 @@ func main() {
 		tg.Add(1)
 		go func() {
 			defer tg.Done()
-			for domain := range domains {
-				traceIt(domain)
+			for job := range jobs {
+				traceIt(&job)
 			}
 		}()
 	}
@@ -80,41 +56,32 @@ func main() {
 
 		go func() {
 			defer ng.Done()
-			for nx := range nxs {
+			for tgt := range nxs {
 
-				if c.isSeen(nx) {
-					if verbose {
-						fmt.Printf("Seen %s\n", nx)
-					}
+				if c.isSeen(tgt.ns_root) {
+					// if verbose {
+					// 	fmt.Printf("Already seen NS %s from domain %s\n", tgt.ns, tgt.domain)
+					// }
 					continue
 				}
 
-				c.addToSeen(nx)
-				vuln, err := isNX(nx)
+				c.addToSeen(tgt.ns_root)
+				vuln, err := isNX(&tgt)
 
 				if err != nil {
 					continue
 				}
-				if vuln {
-					output <- nx
+				// do i need both checks here?
+				if vuln && tgt.vuln {
+					if verbose {
+						color.Green.Printf("%s has root domain %s from NS %s which is %s\n", tgt.domain, tgt.ns_root, tgt.ns, tgt.status)
+					} else {
+						fmt.Printf("%s,%s,%s,%s\n", tgt.domain, tgt.ns, tgt.ns_root, tgt.status)
+					}
 				}
 			}
 		}()
 	}
-
-	// output group
-	// results here are what we're interested in
-	var og sync.WaitGroup
-	og.Add(1)
-	go func() {
-		defer og.Done()
-		for o := range output {
-			if verbose {
-				color.Green.Println(o)
-			}
-			fmt.Println(o)
-		}
-	}()
 
 	// this sends to the domains channel
 	_, err := GetUserInput()
@@ -126,13 +93,10 @@ func main() {
 	}
 
 	// tidy up
-	close(domains)
+	close(jobs)
 	tg.Wait()
 
 	close(nxs)
 	ng.Wait()
-
-	close(output)
-	og.Wait()
 
 }

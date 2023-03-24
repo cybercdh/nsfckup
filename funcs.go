@@ -7,8 +7,11 @@ import (
 	"github.com/lixiangzhong/dnsutil"
 	"github.com/miekg/dns"
 	"io"
+	"log"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	parser "github.com/Cgboal/DomainParser"
 )
@@ -20,67 +23,83 @@ func init() {
 }
 
 /*
+thread-safe way of checking if we've seen domains to check
+*/
+func (c *Container) addToSeen(domain string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.seen[domain] = true
+}
+
+func (c *Container) isSeen(domain string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// if we've seen the domain before, return true
+	if _, ok := c.seen[domain]; ok {
+		return true
+	}
+	return false
+}
+
+/*
 traceIt
 takes a domain and performs a dig domain.com +trace
 sends NS's to nxs channel
 */
-func traceIt(domainToTrace string) {
+func traceIt(job *Job) {
 
 	if verbose {
-		fmt.Printf("Tracing %s\n", domainToTrace)
+		fmt.Printf("dig %s +trace\n", job.domain)
 	}
 
 	var dig dnsutil.Dig
-	rsps, err := dig.Trace(domainToTrace)
+
+	dig.SetDNS(job.resolver)
+
+	rsps, err := dig.Trace(job.domain)
 	if err != nil {
+		log.Println(err)
 		return
 	}
+
 	for _, rsp := range rsps {
 
-		// check if we have a CNAME and recurse
-		ans := rsp.Msg.Answer
-		if len(ans) > 0 {
-			ans_type := strings.Split(ans[0].String(), "\t")[3]
-			if strings.Contains(ans_type, "CNAME") {
-				cname_domain := strings.Split(ans[0].String(), "\t")[4]
-				cname_domain = strings.TrimSuffix(cname_domain, ".")
-
-				if verbose {
-					fmt.Printf("Found CNAME: %s\n", cname_domain)
-				}
-
-				if strict {
-					if !strings.Contains(cname_domain, domainToTrace) {
-						return
-					}
-				}
-
-				traceIt(cname_domain)
-
-				return
-			}
-		}
-
-		// parse each NS, extract the root domain and send to nxs channel to check
+		/*
+		 parse each NS, extract the root domain
+		 and send to nxs channel to check
+		*/
 		for _, ns := range rsp.Msg.Ns {
-			svr := strings.Split(ns.String(), "\t")[4]
-			svr = strings.TrimSuffix(svr, ".")
+
+			// ensure we're handling an NS record
 			typ := strings.Split(ns.String(), "\t")[3]
 
-			if !strings.Contains(typ, "NS") {
+			if strings.Compare(typ, "NS") != 0 {
 				continue
 			}
 
+			// make a new target
+			tgt := Target{domain: job.domain}
+
+			// parse the name server in the msg
+			svr := strings.Split(ns.String(), "\t")[4]
+			svr = strings.TrimSuffix(svr, ".")
+			tgt.ns = svr
+
+			// work with the root domain of the ns
+			ns_root_domain := extractor.GetDomain(svr)
+			tld := extractor.GetTld(svr)
+			ns_domain := ns_root_domain + "." + tld
+
+			// update the target
+			tgt.ns_root = ns_domain
+
 			if verbose {
-				fmt.Printf("Found NS: %s\n", svr)
+				fmt.Printf("%s has NS %s\n", tgt.domain, tgt.ns_root)
 			}
 
-			dom := extractor.GetDomain(svr)
-			tld := extractor.GetTld(svr)
-			domain := dom + "." + tld
-
-			// send nameserver to nxs channel
-			nxs <- domain
+			// send tgt to nxs channel
+			nxs <- tgt
 		}
 	}
 	return
@@ -89,21 +108,27 @@ func traceIt(domainToTrace string) {
 /*
 returns true if an NXDOMAIN response is received from dig
 */
-func isNX(domain string) (bool, error) {
+func isNX(tgt *Target) (bool, error) {
 
 	if verbose {
-		fmt.Printf("Performing dig A %s\n", domain)
+		fmt.Printf("dig A %s\n", tgt.ns_root)
 	}
 	var dig dnsutil.Dig
 	dig.Retry = 3
 
-	msg, err := dig.GetMsg(dns.TypeA, domain)
+	msg, err := dig.GetMsg(dns.TypeA, tgt.ns_root)
 	if err != nil {
 		return false, err
 	}
-	if strings.Contains(msg.String(), "NXDOMAIN") {
+
+	// check is the NameServer returns NXDOMAIN
+	status := dns.RcodeToString[msg.MsgHdr.Rcode]
+	if status == "NXDOMAIN" {
+		tgt.status = status
+		tgt.vuln = true
 		return true, nil
 	}
+
 	return false, nil
 }
 
@@ -111,6 +136,18 @@ func isNX(domain string) (bool, error) {
 get a list of domains from the user and send to the channel to work
 */
 func GetUserInput() (bool, error) {
+
+	// a list of dns resolvers to randomly choose from
+	resolvers := []string{
+		"1.1.1.1:53",
+		"1.0.0.1:53",
+		"8.8.8.8:53",
+		"8.8.4.4:53",
+		"9.9.9.9:53",
+	}
+
+	// seed to randomly select dns server
+	rand.Seed(time.Now().UnixNano())
 
 	seen := make(map[string]bool)
 
@@ -136,7 +173,11 @@ func GetUserInput() (bool, error) {
 
 		seen[domain] = true
 
-		domains <- domain
+		// get a random resolver
+		resolver := resolvers[rand.Intn(len(resolvers))]
+
+		// send the job to the channel
+		jobs <- Job{domain, resolver}
 
 	}
 
