@@ -165,6 +165,8 @@ func GetUserInput() (bool, error) {
 
 	for sc.Scan() {
 
+		var resolver string
+
 		domain := sc.Text()
 
 		// ignore domains we've seen
@@ -174,8 +176,13 @@ func GetUserInput() (bool, error) {
 
 		seen[domain] = true
 
-		// get a random resolver
-		resolver := resolvers[rand.Intn(len(resolvers))]
+		if dnsServer == "" {
+			// get a random resolver
+			resolver = resolvers[rand.Intn(len(resolvers))]
+		} else {
+			// use the one specified by the user
+			resolver = dnsServer
+		}
 
 		// send the job to the channel
 		jobs <- Job{domain, resolver}
