@@ -16,12 +16,12 @@ or
 ## Options
 
 ```
--c int
-    set the concurrency level (default 20)
-
--s  be strict with recursively checking CNAMES
-
--v  get more info on attempts
+  -c int
+        set the concurrency level (default 20)
+  -d string
+        specify a custom DNS resolver address
+  -s    Be strict on CNAME, must include the target domain
+  -v    Get more info on attempts
 ```
 
 ## Install
