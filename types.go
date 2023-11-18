@@ -16,7 +16,6 @@ type Target struct {
 // a Job derived from user input
 type Job struct {
 	domain string
-	// resolver string
 }
 
 // Keeps track if we've seen domains

@@ -18,22 +18,13 @@ or
 ```
   -c int
         set the concurrency level (default 20)
-  -d string
-        specify a custom DNS resolver address
   -s    Be strict on CNAME, must include the target domain
   -v    Get more info on attempts
 ```
 
 ## Install
 
-You need to have the latest version (1.19+) of [Go installed](https://golang.org/doc/install) and configured (i.e. with $GOPATH/bin in your $PATH):
-
-`go get -u github.com/cybercdh/nsfckup`
-
-or
-
 `go install github.com/cybercdh/nsfckup@latest`
-
 
 ## Thanks
 

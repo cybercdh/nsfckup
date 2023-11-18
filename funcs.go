@@ -136,18 +136,6 @@ get a list of domains from the user and send to the channel to work
 */
 func GetUserInput() (bool, error) {
 
-	// a list of dns resolvers to randomly choose from
-	// resolvers := []string{
-	// 	"1.1.1.1",
-	// 	"1.0.0.1",
-	// 	"8.8.8.8",
-	// 	"8.8.4.4",
-	// 	"9.9.9.9",
-	// }
-
-	// seed to randomly select dns server
-	// rand.Seed(time.Now().UnixNano())
-
 	seen := make(map[string]bool)
 
 	// read from stdin or from arg
@@ -163,8 +151,6 @@ func GetUserInput() (bool, error) {
 
 	for sc.Scan() {
 
-		// var resolver string
-
 		domain := sc.Text()
 
 		// ignore domains we've seen
@@ -173,14 +159,6 @@ func GetUserInput() (bool, error) {
 		}
 
 		seen[domain] = true
-
-		// if dnsServer == "" {
-		// 	// get a random resolver
-		// 	resolver = resolvers[rand.Intn(len(resolvers))]
-		// } else {
-		// 	// use the one specified by the user
-		// 	resolver = dnsServer
-		// }
 
 		if verbose {
 			fmt.Printf("Sending %s to jobs channel\n", domain)
