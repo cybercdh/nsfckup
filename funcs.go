@@ -4,16 +4,14 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/lixiangzhong/dnsutil"
-	"github.com/miekg/dns"
 	"io"
 	"log"
-	"math/rand"
 	"os"
 	"strings"
-	"time"
 
 	parser "github.com/Cgboal/DomainParser"
+	"github.com/lixiangzhong/dnsutil"
+	"github.com/miekg/dns"
 )
 
 var extractor parser.Parser
@@ -55,13 +53,13 @@ func traceIt(job *Job) {
 
 	var dig dnsutil.Dig
 
-	dig.SetDNS(job.resolver)
+	// dig.SetDNS(job.resolver)
 
 	rsps, err := dig.Trace(job.domain)
 	if err != nil {
 		// there was an issue with the nameserver, probably timing out
 		if verbose {
-			log.Printf("Tracing %s using %s produced error: %s\n", job.domain, job.resolver, err)
+			log.Printf("Tracing %s produced error: %s\n", job.domain, err)
 		}
 		// dont't return, as we still want to check the problematic nameserver
 		// in case it is nxdomain, although tbh likely it wont be.
@@ -139,16 +137,16 @@ get a list of domains from the user and send to the channel to work
 func GetUserInput() (bool, error) {
 
 	// a list of dns resolvers to randomly choose from
-	resolvers := []string{
-		"1.1.1.1",
-		"1.0.0.1",
-		"8.8.8.8",
-		"8.8.4.4",
-		"9.9.9.9",
-	}
+	// resolvers := []string{
+	// 	"1.1.1.1",
+	// 	"1.0.0.1",
+	// 	"8.8.8.8",
+	// 	"8.8.4.4",
+	// 	"9.9.9.9",
+	// }
 
 	// seed to randomly select dns server
-	rand.Seed(time.Now().UnixNano())
+	// rand.Seed(time.Now().UnixNano())
 
 	seen := make(map[string]bool)
 
@@ -165,7 +163,7 @@ func GetUserInput() (bool, error) {
 
 	for sc.Scan() {
 
-		var resolver string
+		// var resolver string
 
 		domain := sc.Text()
 
@@ -176,16 +174,20 @@ func GetUserInput() (bool, error) {
 
 		seen[domain] = true
 
-		if dnsServer == "" {
-			// get a random resolver
-			resolver = resolvers[rand.Intn(len(resolvers))]
-		} else {
-			// use the one specified by the user
-			resolver = dnsServer
+		// if dnsServer == "" {
+		// 	// get a random resolver
+		// 	resolver = resolvers[rand.Intn(len(resolvers))]
+		// } else {
+		// 	// use the one specified by the user
+		// 	resolver = dnsServer
+		// }
+
+		if verbose {
+			fmt.Printf("Sending %s to jobs channel\n", domain)
 		}
 
 		// send the job to the channel
-		jobs <- Job{domain, resolver}
+		jobs <- Job{domain}
 
 	}
 

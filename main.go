@@ -20,7 +20,6 @@ import (
 var verbose bool
 var strict bool
 var concurrency int
-var dnsServer string
 
 // channels
 var jobs = make(chan Job, 100)
@@ -29,7 +28,6 @@ var nxs = make(chan Target, 100)
 func main() {
 
 	flag.IntVar(&concurrency, "c", 20, "set the concurrency level")
-	flag.StringVar(&dnsServer, "d", "", "specify a custom DNS resolver address")
 	flag.BoolVar(&verbose, "v", false, "Get more info on attempts")
 	flag.BoolVar(&strict, "s", false, "Be strict on CNAME, must include the target domain")
 
