@@ -18,7 +18,6 @@ import (
 
 // globals
 var verbose bool
-var strict bool
 var concurrency int
 
 // channels
@@ -29,7 +28,6 @@ func main() {
 
 	flag.IntVar(&concurrency, "c", 20, "set the concurrency level")
 	flag.BoolVar(&verbose, "v", false, "Get more info on attempts")
-	flag.BoolVar(&strict, "s", false, "Be strict on CNAME, must include the target domain")
 
 	flag.Parse()
 
