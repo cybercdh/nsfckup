@@ -11,9 +11,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gookit/color"
 	"os"
 	"sync"
+
+	"github.com/gookit/color"
 )
 
 // globals
@@ -24,6 +25,8 @@ var concurrency int
 var jobs = make(chan Job, 100)
 var nxs = make(chan Target, 100)
 
+// Note: on a read error the workers are left running; the process exits.
+
 func main() {
 
 	flag.IntVar(&concurrency, "c", 20, "set the concurrency level")
@@ -31,9 +34,12 @@ func main() {
 
 	flag.Parse()
 
-	c := Container{
-		seen: map[string]bool{"": false},
+	if concurrency < 1 {
+		fmt.Fprintf(os.Stderr, "-c must be at least 1 (got %d)\n", concurrency)
+		os.Exit(2)
 	}
+
+	c := Container{seen: make(map[string]bool)}
 
 	// traceit group
 	var tg sync.WaitGroup
@@ -55,23 +61,22 @@ func main() {
 		go func() {
 			defer ng.Done()
 			for tgt := range nxs {
-
-				if c.isSeen(tgt.ns_root) {
+				if !c.markSeen(tgt.ns_root) {
 					continue
 				}
 
 				if verbose {
-					fmt.Printf("%s has NS %s\n", tgt.domain, tgt.ns_root)
+					fmt.Fprintf(os.Stderr, "%s has NS %s\n", tgt.domain, tgt.ns_root)
 				}
 
-				c.addToSeen(tgt.ns_root)
 				vuln, err := isNX(&tgt)
-
 				if err != nil {
+					if verbose {
+						fmt.Fprintf(os.Stderr, "dig A %s failed: %s\n", tgt.ns_root, err)
+					}
 					continue
 				}
-				// do i need both checks here?
-				if vuln && tgt.vuln {
+				if vuln {
 					if verbose {
 						color.Green.Printf("%s has root domain %s from NS %s which is %s\n", tgt.domain, tgt.ns_root, tgt.ns, tgt.status)
 					} else {
@@ -85,9 +90,7 @@ func main() {
 	// this sends to the domains channel
 	_, err := GetUserInput()
 	if err != nil {
-		if verbose {
-			color.Red.Printf("Failed to fetch user input, please retry.\n")
-		}
+		fmt.Fprint(os.Stderr, color.Red.Sprintf("Failed to read input: %s\n", err))
 		os.Exit(1)
 	}
 
