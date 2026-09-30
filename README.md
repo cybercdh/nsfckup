@@ -18,9 +18,10 @@ or
 ```
   -c int
         set the concurrency level (default 20)
-  -s    Be strict on CNAME, must include the target domain
-  -v    Get more info on attempts
+  -v    Get more info on attempts (printed to stderr)
 ```
+
+Output is `domain,nameserver,nameserver_domain,NXDOMAIN`, one line per nameserver domain that returns NXDOMAIN. Input lines may be bare domains or URLs.
 
 ## Install
 
